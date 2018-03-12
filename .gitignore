@@ -11,3 +11,9 @@
 *.lai
 *.la
 *.a
+
+src/cscope.files
+src/cscope.in.out
+src/cscope.out
+src/cscope.po.out
+src/tags

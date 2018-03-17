@@ -1111,17 +1111,20 @@ bool SignSignature(const CTransaction& txFrom, CTransaction& txTo, unsigned int 
     return true;
 }
 
-
+//检查前置交易From和当前交易To的签名
 bool VerifySignature(const CTransaction& txFrom, const CTransaction& txTo, unsigned int nIn, int nHashType)
 {
     assert(nIn < txTo.vin.size());
+    //获取需要验证的那一条交易输入txin
     const CTxIn& txin = txTo.vin[nIn];
+    //检查这条交易输入txin的前置交易是否在前置txFrom的输出交易txout的范围内
     if (txin.prevout.n >= txFrom.vout.size())
         return false;
+    //找到该交易在前置交易txFrom里的那条具体的输出交易
     const CTxOut& txout = txFrom.vout[txin.prevout.n];
-
+    //检查自己存储的前置交易的hash码是否和前置交易本身的hash码相同
     if (txin.prevout.hash != txFrom.GetHash())
         return false;
-
+    //检查锁定脚本和解锁脚本是否匹配
     return EvalScript(txin.scriptSig + CScript(OP_CODESEPARATOR) + txout.scriptPubKey, txTo, nIn, nHashType);
 }

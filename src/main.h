@@ -143,12 +143,14 @@ public:
 
 
 
-
 class COutPoint
 {
 public:
-    uint256 hash;
-    unsigned int n;
+    uint256 hash;//前置交易hash. 
+    //为收入来源交易单的散列值,也就是待支付的钱是谁给你的,经常会有多个收入来源被列在交易单中.
+    
+    unsigned int n;//前置交易的索引. 
+    //指明是收入来源交易单中具体哪一个out,也就是Previous tx交易单中的out索引值(因为out也可以有多个)
 
     COutPoint() { SetNull(); }
     COutPoint(uint256 hashIn, unsigned int nIn) { hash = hashIn; n = nIn; }
@@ -190,12 +192,17 @@ public:
 // transaction's output that it claims and a signature that matches the
 // output's public key.
 //
+// 交易输入.它包含先前交易输出的声明地址，也就是和交易输出的公钥匹配
+// 
+// 每一笔交易,out的总额应该等于in的总额。但是,在这个交易单里,只会有out的Value,没有in的Value,
+// 而是通过in的Pervious与index,追溯到上一个交易单的某一个out,获得Value。
+
 class CTxIn
 {
 public:
-    COutPoint prevout;
-    CScript scriptSig;
-    unsigned int nSequence;
+    COutPoint prevout;//上一个交易单的输出
+    CScript scriptSig;//拥有者对该交易的ECDSA签名认可,也就是解锁脚本
+    unsigned int nSequence;//序列
 
     CTxIn()
     {
@@ -274,8 +281,8 @@ public:
 class CTxOut
 {
 public:
-    int64 nValue;
-    CScript scriptPubKey;
+    int64 nValue;//发送的币值,以Satoshi 为单位,1BTC = 100,000,000 Satoshi
+    CScript scriptPubKey;//接收方的公钥脚本,也叫作锁定脚本
 
 public:
     CTxOut()
@@ -354,13 +361,21 @@ public:
 // The basic transaction that is broadcasted on the network and contained in
 // blocks.  A transaction can contain multiple inputs and outputs.
 //
+// 交易。传播到网络节点，被区块包含。可以包含多个输入和输出
+//
 class CTransaction
 {
 public:
-    int nVersion;
-    vector<CTxIn> vin;
-    vector<CTxOut> vout;
-    int nLockTime;
+    int nVersion;//版本
+    //版本(version)是明确一笔交易参照的规则，除非有重大升级的情况下，版本号基本无变化，是比较固定的一个值
+    
+    vector<CTxIn> vin;//交易输入
+    vector<CTxOut> vout;//交易输出
+    
+    int nLockTime;//交易锁定时间.
+    //交易的锁定时间是被该交易被加到区块的最早时间，在大多数的情况下他的值都是0，表示需要立即被加入区块中。
+    //如果锁定时间大于0而小于5亿，它的值就表示区块高度。如果大于5亿就表示一个Unix时间戳。
+
 
 
     CTransaction()
@@ -594,12 +609,12 @@ public:
 
 //
 // A transaction with a merkle branch linking it to the block chain
-//
+// 区块链中每个区块都包含了产生该区块的所有交易，且merkle树表示
 class CMerkleTx : public CTransaction
 {
 public:
-    uint256 hashBlock;
-    vector<uint256> vMerkleBranch;
+    uint256 hashBlock;//区块hash id
+    vector<uint256> vMerkleBranch;//merkle树
     int nIndex;
 
     // memory only
@@ -805,13 +820,17 @@ public:
 class CBlock
 {
 public:
-    // header
-    int nVersion;
-    uint256 hashPrevBlock;
-    uint256 hashMerkleRoot;
-    unsigned int nTime;
-    unsigned int nBits;
-    unsigned int nNonce;
+    // header 区块的头部信息
+    int nVersion;//区块版本号，表示本区块遵守的验证规则
+    uint256 hashPrevBlock;//前一区块的哈希值，使用SHA256(SHA256(父区块头))计算
+    uint256 hashMerkleRoot;//该区块中交易的Merkle树根的哈希值，同样采用SHA256(SHA256())计算
+    unsigned int nTime;//该区块产生的近似时间，精确到秒的UNIX时间戳，必须严格大于前11个区块时间的中值，
+    //同时全节点也会拒绝那些超出自己2个小时时间戳的区块
+
+    unsigned int nBits;//该区块工作量证明算法的难度目标，已经使用特定算法编码
+    unsigned int nNonce;//为了找到满足难度目标所设定的随机数，为了解决32位随机数在算力飞升的情况下不够用的问题，
+    //规定时间戳和coinbase交易信息均可更改，以此扩展nonce的位数
+
 
     // network and disk
     vector<CTransaction> vtx;
